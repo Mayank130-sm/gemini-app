@@ -1,28 +1,39 @@
 $(document).ready(function() {
+  // --- Initial Setup: Show landing page, hide app content ---
+  $('#main-app-content').hide(); // Hide the entire application content initially
+  $('body').css('overflow-y', 'hidden'); // Hide body scrollbar while on landing/modal
+
   // --- Modal Logic ---
-  // Check if the disclaimer has been accepted before. Using localStorage.
   const disclaimerAccepted = localStorage.getItem('silentscan_disclaimer_accepted');
   if (!disclaimerAccepted) {
     $('#disclaimer-modal').removeClass('hidden').addClass('animate-fade-in');
   }
 
-  // Event listener for accepting and closing the disclaimer modal.
   $('#accept-disclaimer, #close-modal').click(function() {
     $('#disclaimer-modal').addClass('animate-fade-out').one('animationend', function() {
       $(this).addClass('hidden').removeClass('animate-fade-out');
     });
-    // Store in localStorage that the disclaimer has been accepted.
     localStorage.setItem('silentscan_disclaimer_accepted', 'true');
+    // If user accepts disclaimer, and if they are on the landing page, they can now click "Get Started"
+    // No direct transition to app content here, "Get Started" button handles it.
   });
 
+  // --- "Get Started" Button Logic ---
+  $('#get-started-button').click(function() {
+    $('#landing-page').addClass('animate-fade-out').one('animationend', function() {
+      $(this).addClass('hidden').removeClass('animate-fade-out');
+      $('#main-app-content').fadeIn(800, function() { // Fade in main content
+        $('body').css('overflow-y', 'auto'); // Restore body scrollbar
+      }).css('display', 'flex'); // Ensure it displays as flex as defined in HTML
+    });
+  });
+
+
   // --- Notification Function ---
-  // A reusable function to display success or error notifications.
   function showNotification(message, type = 'info', duration = 3000) {
     const $notificationArea = $('#notification-area');
-    // Clear existing classes, add 'notification' base class, type (error/success), message, and display.
     $notificationArea.removeClass().addClass('notification').addClass(type).text(message).removeClass('hidden').addClass('animate-fade-in');
 
-    // Hide the notification after a specified duration.
     setTimeout(() => {
       $notificationArea.addClass('animate-fade-out').one('animationend', function() {
         $(this).addClass('hidden').removeClass('animate-fade-out');
@@ -31,36 +42,31 @@ $(document).ready(function() {
   }
 
   // --- Tab switching functionality ---
-  // Handle clicks on navigation tabs to show/hide corresponding content.
   $('.tab-button').click(function() {
-    $('.tab-button').removeClass('tab-active'); // Remove active class from all tabs.
-    $(this).addClass('tab-active'); // Add active class to the clicked tab.
+    $('.tab-button').removeClass('tab-active');
+    $(this).addClass('tab-active');
     
-    const targetId = $(this).data('target'); // Get the target content ID from data-target attribute.
-    $('.tab-content').addClass('hidden'); // Hide all tab content.
-    $(`#${targetId}`).removeClass('hidden'); // Show the targeted tab content.
+    const targetId = $(this).data('target');
+    $('.tab-content').addClass('hidden');
+    $(`#${targetId}`).removeClass('hidden');
   });
 
   // --- "Try Again" button functionality ---
-  // Reset forms and hide results when "Try Again" is clicked.
   $('.try-again-btn').click(function() {
     const formContainer = $(this).closest('.module-card');
-    formContainer.find('form').show(); // Show the form.
-    formContainer.find('[id$="-result"]').addClass('hidden'); // Hide the result section.
-
-    // Specific reset for Skin Analysis image preview.
+    formContainer.find('form').show();
+    formContainer.find('[id$="-result"]').addClass('hidden');
+    
     if (formContainer.find('#skin-form').length) {
-      $('#image-preview').addClass('hidden').attr('src', '');
-      $('#image-placeholder').removeClass('hidden');
-      $('#skin-image').val(''); // Clear the file input.
+        $('#image-preview').addClass('hidden').attr('src', '');
+        $('#image-placeholder').removeClass('hidden');
+        $('#skin-image').val(''); // Clear the file input
     }
-
-    // Reset checkboxes for STI and remove validation error states.
+    
     formContainer.find('input[type="checkbox"]').prop('checked', false);
-    formContainer.find('input, select').removeClass('invalid'); // Remove error styles from inputs/selects.
-    formContainer.find('.error-message').addClass('hidden'); // Hide all error messages.
+    formContainer.find('input, select').removeClass('invalid');
+    formContainer.find('.error-message').addClass('hidden');
 
-    // Reset all select elements to their first option.
     formContainer.find('select').each(function() {
       if ($(this).attr('required')) {
         $(this).val($(this).find('option:first').val());
@@ -68,17 +74,14 @@ $(document).ready(function() {
         $(this).val($(this).find('option:first').val());
       }
     });
-    // Clear text, number, and date input fields.
     formContainer.find('input[type="number"], input[type="text"], input[type="date"]').val('');
 
-    // Hide conditional STI/Skin fields on try again.
     $('#sti-discharge-details').addClass('hidden');
     $('#sti-discharge-consistency-details').addClass('hidden');
     $('#sti-sores-details').addClass('hidden');
   });
 
   // --- Client-side form validation helper ---
-  // Validates all required fields within a given form.
   function validateForm(formId) {
     let isValid = true;
     $(`#${formId} [required]`).each(function() {
@@ -87,12 +90,11 @@ $(document).ready(function() {
       const errorId = $input.attr('id') + '-error';
       const $errorMessage = $(`#${errorId}`);
 
-      // Check if value is empty/null/whitespace or an empty array for multiple selects.
       if (!value || (Array.isArray(value) && value.length === 0) || (typeof value === 'string' && value.trim() === '')) {
         $input.addClass('invalid');
         if ($errorMessage.length) $errorMessage.removeClass('hidden').text('This field is required.');
         isValid = false;
-      } else if ($input.attr('type') === 'number') { // Specific validation for number inputs.
+      } else if ($input.attr('type') === 'number') {
         const min = parseFloat($input.attr('min'));
         const max = parseFloat($input.attr('max'));
         const numVal = parseFloat(value);
@@ -104,7 +106,8 @@ $(document).ready(function() {
           $input.removeClass('invalid');
           if ($errorMessage.length) $errorMessage.addClass('hidden');
         }
-      } else { // For other valid required fields.
+      }
+      else {
         $input.removeClass('invalid');
         if ($errorMessage.length) $errorMessage.addClass('hidden');
       }
@@ -113,7 +116,6 @@ $(document).ready(function() {
   }
 
   // --- Real-time input validation (on change/blur) ---
-  // Apply validation visually as the user interacts with input fields.
   $('input[type="number"], select').on('change blur', function() {
     const $input = $(this);
     const value = $input.val();
@@ -141,24 +143,42 @@ $(document).ready(function() {
   });
 
 
+  // --- File input preview for skin analysis ---
+  $('#skin-image').change(function() {
+    const file = this.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        $('#image-preview').attr('src', e.target.result).removeClass('hidden');
+        $('#image-placeholder').addClass('hidden');
+      }
+      reader.readAsDataURL(file);
+    } else {
+      $('#image-preview').addClass('hidden').attr('src', '');
+      $('#image-placeholder').removeClass('hidden');
+    }
+  });
+  
+  $('#image-preview-container').click(function() {
+    $('#skin-image').click();
+  });
+
   // --- Conditional display for STI symptom details ---
-  // Show/hide discharge details based on "Unusual discharge" checkbox.
   $('#sti-discharge').change(function() {
     if ($(this).is(':checked')) {
       $('#sti-discharge-details, #sti-discharge-consistency-details').removeClass('hidden');
     } else {
       $('#sti-discharge-details, #sti-discharge-consistency-details').addClass('hidden');
-      $('#sti-discharge-color, #sti-discharge-consistency').val(''); // Clear values.
+      $('#sti-discharge-color, #sti-discharge-consistency').val('');
     }
   });
 
-  // Show/hide sores details based on "Sores, blisters, or lesions" checkbox.
   $('#sti-sores').change(function() {
     if ($(this).is(':checked')) {
       $('#sti-sores-details').removeClass('hidden');
     } else {
       $('#sti-sores-details').addClass('hidden');
-      $('#sti-sores-description').val(''); // Clear value.
+      $('#sti-sores-description').val('');
     }
   });
 
@@ -167,7 +187,6 @@ $(document).ready(function() {
   // Breast Cancer Form Submission
   $('#breast-cancer-form').submit(async function(e) {
     e.preventDefault();
-    // Validate form before submitting.
     if (!validateForm('breast-cancer-form')) {
       showNotification('Please fill in all required fields and correct errors.', 'error');
       return;
@@ -175,9 +194,8 @@ $(document).ready(function() {
 
     const submitButton = $(this).find('button[type="submit"]');
     const originalButtonHtml = submitButton.html();
-    submitButton.html('<div class="spinner mr-2"></div> Analyzing...'); // Show spinner.
+    submitButton.html('<div class="spinner mr-2"></div> Analyzing...');
     
-    // Collect form data.
     const features = {
       age: parseInt($('#bc-age').val()),
       family_history: parseInt($('#bc-family-history').val()),
@@ -196,7 +214,6 @@ $(document).ready(function() {
     };
     
     try {
-      // Make API call.
       const response = await fetch('https://magicloops.dev/api/loop/0f802499-8dde-4dc2-bc2a-79a8003ea49a/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -209,7 +226,6 @@ $(document).ready(function() {
       
       const data = await response.json();
       
-      // Update UI with results.
       $(this).hide();
       $('#breast-cancer-result').removeClass('hidden');
       $('#bc-risk-level').text(data.risk_level || 'Unknown');
@@ -224,7 +240,7 @@ $(document).ready(function() {
       console.error('Error submitting breast cancer form:', error);
       showNotification('Failed to analyze risk: ' + error.message, 'error');
     } finally {
-      submitButton.html(originalButtonHtml); // Restore button text.
+      submitButton.html(originalButtonHtml);
     }
   });
   
@@ -400,7 +416,7 @@ $(document).ready(function() {
       $(this).hide();
       $('#sti-result').removeClass('hidden');
       
-      $('#sti-conditions').empty(); // Clear previous conditions.
+      $('#sti-conditions').empty();
       
       if (data.predictions && Object.keys(data.predictions).length > 0) {
         Object.entries(data.predictions).forEach(([condition, probability]) => {
